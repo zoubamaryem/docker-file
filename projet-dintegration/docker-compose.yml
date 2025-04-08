@@ -1,0 +1,93 @@
+version: '3.8'
+
+services:
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: auth-service
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://mongo:27017/authdb
+      - JWT_SECRET=supersecret
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - app-network
+
+  catalogue-service:
+    build:
+      context: ./catalogue-service
+    container_name: catalogue-service
+    ports:
+      - "3000:3000"
+    environment:
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=catalogue
+    depends_on:
+      - postgres
+    networks:
+      - app-network
+
+  postgres:
+    image: postgres
+    container_name: postgres
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: catalogue
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  order-service:
+    build:
+      context: ./order-service
+    container_name: order-service
+    ports:
+      - "4000:4000"
+    networks:
+      - app-network
+
+  admin-dashboard:
+    build:
+      context: ./admin-dashboard
+      dockerfile: Dockerfile
+    container_name: admin-dashboard
+    ports:
+      - "4200:80"
+    depends_on:
+      - auth-service
+      - catalogue-service
+      - order-service
+    networks:
+      - app-network
+
+  # frontend (si tu l’as déjà développé)
+  frontend:
+    build:
+      context: ./frontend
+    container_name: frontend
+    ports:
+      - "3001:3000"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+
+volumes:
+  mongo_data:
+  postgres_data:
